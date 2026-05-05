@@ -1,0 +1,5 @@
+.DS_Store
+.claude/goal/
+*.swp
+.idea/
+.vscode/
