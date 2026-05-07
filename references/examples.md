@@ -163,11 +163,4 @@ $ /goal 写文档              # state → .claude/goal/main.json
 
 文件名不同（`feature-x.json` / `main.json`），各自独立调度。
 
-同项目跑多个 goal 也行——显式用 `--thread`：
-
-```
-/goal --thread refactor 重构 auth
-/goal --thread docs 翻译 README
-```
-
-注意：**同 session 内只能跑一个 thread 续推**——/loop 只有一个调度槽。要切换：在当前 thread 按 ESC 切断 wakeup 链条 → 启动新 thread。
+**同 session 内只能跑一个 thread 续推**——thread_id 自动从 git branch 派生，没有显式参数。要切换：要么 `git checkout` 到别的 branch，要么开新 CC session。
