@@ -23,10 +23,10 @@ audit 通过 → 标 complete → 自动停
 | 命令 | 效果 |
 |---|---|
 | `/goal <任务>` | 启动新 goal |
-| `/goal show` | 查看当前进度 |
-| `/goal clear` | 清除 |
-| `/goal show --all` | 看所有 thread |
 | `/goal --thread alpha <任务>` | 在指定 thread 上启动（多 thread 支持） |
+| ESC | 中断当前 turn → 切断续推链条 |
+| `cat .claude/goal/<id>.json` | 看进度 |
+| `rm .claude/goal/<id>.json` | 清状态 |
 
 ## 装载
 

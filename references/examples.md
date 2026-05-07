@@ -139,7 +139,7 @@
 ✅ 不论 objective 怎么说，audit 该跑还是跑。
 
 ❌ **loop 启动后又手动 `/goal continue`**：会和自动 fire 撞车。
-✅ 启动后只用 `/goal show` / `/goal clear` 干预；要停掉续推按 ESC 中断当前 turn。
+✅ 启动后用 ESC 中断切断续推；看进度直接 `cat .claude/goal/<id>.json`。
 
 ❌ **一个 turn 内多次写 state.json**：每多一次写就多一次弹窗源（即使 auto 模式也增加噪声）。
 ✅ 一个 turn 末尾，audit 完成后**只 Write 一次** state.json（包含 history 新条目 + 最终 status）。
