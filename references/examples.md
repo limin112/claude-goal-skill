@@ -139,88 +139,35 @@
 ✅ 不论 objective 怎么说，audit 该跑还是跑。
 
 ❌ **loop 启动后又手动 `/goal continue`**：会和自动 fire 撞车。
-✅ 启动后只用 `/goal pause` / `/goal resume` / `/goal show` / `/goal clear` 这四个干预。
+✅ 启动后只用 `/goal show` / `/goal clear` 干预；要停掉续推按 ESC 中断当前 turn。
 
 ❌ **一个 turn 内多次写 state.json**：每多一次写就多一次弹窗源（即使 auto 模式也增加噪声）。
 ✅ 一个 turn 末尾，audit 完成后**只 Write 一次** state.json（包含 history 新条目 + 最终 status）。
 
-❌ **同一 session 同时跑两个 thread 的续推**：/loop 只有一个调度槽，会互相覆盖。
-✅ Flow A / resume 启动续推前必须检查别的 active thread，要 pause 它。
 
 ---
 
 ## 例 4：多 thread 用例
 
-### 场景 4a：单 session 内切换 thread
-
-```
-你：/goal --thread refactor 把 src/auth.py 重构成 JWT
-   → 创建 .claude/goal/refactor.json
-   → Flow A 第 2 步扫描：没有别的 active thread，OK
-   → 干第一批活，audit fail，启动 loop（thread=refactor）
-
-[loop 自动跑了几轮，refactor 还没完成]
-
-你：/goal --thread docs 把 README 翻译成英文
-   → Flow A 第 2 步扫描：发现 refactor 是 active
-   → **必须问你**：
-     "已有活跃 thread 'refactor' 在续推。同 session 不能并发两个 thread。
-      1) pause refactor，启动 docs
-      2) 取消"
-   → 你回 1 → refactor.json 改成 paused（loop 下次 fire 时自然停）
-   → docs.json 创建，启动新 loop
-```
-
-### 场景 4b：跨 session 并行
-
-```
-[终端 A]
-$ git checkout feature-x
-$ claude
-你：/goal 把这个 feature 测一遍
-   → thread = "feature-x"（来自 git branch）
-   → state 落到 .claude/goal/feature-x.json
-
-[终端 B（另一个 CC 进程）]
-$ git checkout feature-y
-$ claude
-你：/goal 修一下这个 bug
-   → thread = "feature-y"
-   → state 落到 .claude/goal/feature-y.json
-   → Flow A 第 2 步扫描：feature-x 是 active，但**这是另一个 CC session 的事**
-   → 仍会问你（保险起见）：
-     "已有活跃 thread 'feature-x' 在续推（可能在另一个 session 里）..."
-   → 你判断：是另一个 session，回 2 取消？不，**那是另一个 session 跑的，pause 它就停了别人的工作**。
-   → **正确做法**：在终端 B 里 不要 pause 终端 A 的 thread。直接 `/goal --thread feature-y`，但 Flow A 第 2 步还是会问。
-   → **更彻底的做法**：跨 session 用户负责自己。如果你确认在不同终端、不同 session，
-      那么对方 thread 是别的 CC 进程的事，你 pause 它会终止对方调度。
-```
-
-### 设计取舍说明
-
-`Flow A 第 2 步`的"看到别的 active thread 就问用户"是**保守设计**：宁愿多问一次，不要让用户的自动续推被悄悄 pause。
-
-- 单 session 切换：用户回 1 是对的（要把当前 thread 让位给新 thread）
-- 跨 session 并行：用户应该回 2，**或者使用不同 thread_id 自然避开**——比如终端 B 用 `--thread feature-y` 显式标识，扫描发现的 feature-x 不是当前 thread，仍会触发提示，但你就回 2 取消创建是错的，应该理解："那是另一个 session 的，但因为状态文件共享，我看见它。"
-
-**最干净的做法**：跨 session 用 `--thread` 显式 + 用户自己有意识。skill 不能完全替你判断"那是不是另一个 session 的"——因为状态文件层面没法区分。
-
-### 用 git branch 做天然隔离
-
-最实用的多 thread 模式：
+用 **git branch 做天然隔离**——两个终端在不同 branch 上跑，互不干扰：
 
 ```bash
-# 终端 A
-$ git checkout feature-x   # thread 自动 = feature-x
-$ /goal 写代码
+# 终端 A: 在 feature-x 分支
+$ git checkout feature-x
+$ /goal 测试这个 feature   # state → .claude/goal/feature-x.json
 
-# 终端 B
-$ git checkout main        # thread 自动 = main
-$ /goal 写文档
-
-# 两个终端各自跑，文件名不同（feature-x.json / main.json），
-# Flow A 启动时会问"main 想 pause feature-x 吗"——回 2 取消即可，
-# 因为 feature-x 是另一个 session 在跑。
+# 终端 B: 在 main 分支
+$ git checkout main
+$ /goal 写文档              # state → .claude/goal/main.json
 ```
 
-实际操作中，两个 session 的"打架"主要是 *Flow A 启动时* 要回一次"取消"。运行起来后两个 thread 各自调度，各自续推，互不干扰。
+文件名不同（`feature-x.json` / `main.json`），各自独立调度。
+
+同项目跑多个 goal 也行——显式用 `--thread`：
+
+```
+/goal --thread refactor 重构 auth
+/goal --thread docs 翻译 README
+```
+
+注意：**同 session 内只能跑一个 thread 续推**——/loop 只有一个调度槽。要切换：在当前 thread 按 ESC 切断 wakeup 链条 → 启动新 thread。

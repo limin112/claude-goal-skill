@@ -24,8 +24,6 @@ audit 通过 → 标 complete → 自动停
 |---|---|
 | `/goal <任务>` | 启动新 goal |
 | `/goal show` | 查看当前进度 |
-| `/goal pause` | 暂停 |
-| `/goal resume` | 继续 |
 | `/goal clear` | 清除 |
 | `/goal show --all` | 看所有 thread |
 | `/goal --thread alpha <任务>` | 在指定 thread 上启动（多 thread 支持） |
@@ -53,7 +51,7 @@ git clone https://github.com/limin112/claude-goal-skill ~/.claude/skills/goal
 | `thread_goals` SQLite 表 | `.claude/goal/<thread_id>.json` 一文件一 thread |
 | 4 状态机（含 budget_limited） | 3 状态（active/paused/complete），budget 交给 Claude Code 的 `/compact` |
 | Codex runtime 自动续推 | `Skill(loop, ...)` + `ScheduleWakeup` |
-| 中断 = 自动 pause | Flow B 的「话题变更检测」 |
+| 中断 = 自动 pause | Flow B 的「话题变更检测」+ 用户 ESC |
 | 多 thread 并发（thread_id 主键） | 不同 JSON 文件天然隔离；同 session 强制单活跃 thread |
 
 ## 设计哲学
